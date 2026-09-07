@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Refresh Opportunity Scoring — A Signal-Based Approach to Content Review Prioritization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1B2333;
+    --paper:#FAF9F4;
+    --paper-warm:#F3F1E9;
+    --slate:#5B6472;
+    --amber:#B8862B;
+    --teal:#2F6F6D;
+    --line:#DCD7CB;
+    --red-soft:#A8503F;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Lora', Georgia, serif;
+    line-height:1.7;
+    font-size:17px;
+  }
+  h1,h2,h3,.label,.mono,button{
+    font-family:'Space Grotesk', sans-serif;
+  }
+  .wrap{
+    max-width:700px;
+    margin:0 auto;
+    padding:0 24px;
+  }
+  a{color:var(--teal); text-decoration-color:rgba(47,111,109,0.35); text-underline-offset:3px;}
+  a:hover{text-decoration-color:var(--teal);}
+
+  /* HERO */
+  .hero{
+    background:var(--ink);
+    color:var(--paper);
+    padding:72px 0 56px;
+    border-bottom:1px solid var(--ink);
+  }
+  .hero .label{
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:#9AA5B8;
+    margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:2.15rem;
+    line-height:1.22;
+    font-weight:600;
+    margin:0 0 22px;
+    max-width:15ch;
+    letter-spacing:-0.01em;
+  }
+  .hero .dek{
+    font-family:'Lora',serif;
+    font-style:italic;
+    color:#C7CDDA;
+    font-size:1.08rem;
+    max-width:52ch;
+    margin:0 0 40px;
+  }
+  .stat-row{
+    display:flex;
+    gap:40px;
+    flex-wrap:wrap;
+    border-top:1px solid #333E52;
+    padding-top:28px;
+  }
+  .stat{
+    min-width:130px;
+  }
+  .stat .n{
+    font-size:1.9rem;
+    font-weight:700;
+    color:var(--paper);
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .d{
+    font-size:0.85rem;
+    color:#9AA5B8;
+    margin-top:4px;
+  }
+  .stat.amber .n{color:var(--amber);}
+  .stat.teal .n{color:#7FC4C1;}
+
+  /* SECTIONS */
+  section{
+    padding:52px 0;
+    border-bottom:1px solid var(--line);
+  }
+  section:last-of-type{border-bottom:none;}
+  .sec-num{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:0.8rem;
+    color:var(--slate);
+    letter-spacing:0.03em;
+    margin-bottom:10px;
+  }
+  h2{
+    font-size:1.5rem;
+    font-weight:600;
+    margin:0 0 22px;
+    letter-spacing:-0.005em;
+  }
+  h3{
+    font-size:1.08rem;
+    font-weight:600;
+    margin:28px 0 12px;
+    color:var(--ink);
+  }
+  p{margin:0 0 16px;}
+  ul,ol{margin:0 0 16px; padding-left:22px;}
+  li{margin-bottom:8px;}
+
+  .callout{
+    background:var(--paper-warm);
+    border-left:3px solid var(--amber);
+    padding:16px 20px;
+    margin:20px 0;
+    font-size:0.95rem;
+  }
+  .callout.teal{border-left-color:var(--teal);}
+  .callout .tag{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:0.72rem;
+    letter-spacing:0.04em;
+    color:var(--amber);
+    display:block;
+    margin-bottom:6px;
+  }
+  .callout.teal .tag{color:var(--teal);}
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin:20px 0;
+    font-size:0.92rem;
+    font-family:'Space Grotesk',sans-serif;
+  }
+  th,td{
+    text-align:left;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  th{
+    font-weight:600;
+    color:var(--slate);
+    font-size:0.78rem;
+    letter-spacing:0.02em;
+    border-bottom:2px solid var(--ink);
+  }
+  td.num{font-variant-numeric:tabular-nums;}
+  tr.highlight td{background:var(--paper-warm); font-weight:600;}
+
+  .chart-box{
+    background:var(--paper-warm);
+    border:1px solid var(--line);
+    padding:24px 20px 12px;
+    margin:24px 0;
+    border-radius:2px;
+  }
+
+  .action-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:14px;
+    margin:20px 0;
+  }
+  .action-card{
+    border:1px solid var(--line);
+    padding:16px 18px;
+    display:grid;
+    grid-template-columns:110px 1fr;
+    gap:16px;
+    align-items:start;
+  }
+  .action-card .tier{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:0.9rem;
+    padding-top:2px;
+  }
+  .action-card.refresh .tier{color:var(--red-soft);}
+  .action-card.monitor .tier{color:var(--amber);}
+  .action-card.leave .tier{color:var(--teal);}
+  .action-card p{margin:0; font-size:0.95rem;}
+  .reason-code{
+    display:inline-block;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:0.72rem;
+    background:var(--ink);
+    color:var(--paper);
+    padding:2px 8px;
+    border-radius:2px;
+    margin:2px 4px 2px 0;
+  }
+
+  .repro-list{list-style:none; padding:0;}
+  .repro-list li{
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    font-size:0.95rem;
+  }
+  .repro-list .w{color:var(--slate); font-family:'Space Grotesk',sans-serif; font-size:0.82rem; white-space:nowrap;}
+
+  footer{
+    padding:44px 0 60px;
+    font-size:0.88rem;
+    color:var(--slate);
+  }
+  footer .credit{
+    margin-top:10px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:600px){
+    .hero{padding:52px 0 40px;}
+    .hero h1{font-size:1.6rem;}
+    section{padding:40px 0;}
+    .action-card{grid-template-columns:1fr; gap:6px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="wrap">
+    <div class="label">FLYRANK ML INTERNSHIP · CAPSTONE RESEARCH PAPER</div>
+    <h1>Which pages deserve a refresh? Scoring content decay before it costs visibility.</h1>
+    <p class="dek">A ranked, reason-coded scoring model for prioritizing content review — built and validated on 30,000 anonymized pages of real search performance data.</p>
+    <div class="stat-row">
+      <div class="stat"><div class="n">30,000</div><div class="d">pages analyzed</div></div>
+      <div class="stat amber"><div class="n">16,262</div><div class="d">flagged as declining</div></div>
+      <div class="stat teal"><div class="n">+0.05–0.08</div><div class="d">precision gain over baseline</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section id="abstract">
+    <div class="sec-num">Abstract</div>
+    <h2>Title &amp; Abstract</h2>
+    <p><strong>Title:</strong> Refresh Opportunity Scoring: Ranking Content for Review Using Age, Freshness, and Engagement Signals</p>
+    <p><strong>Abstract:</strong> Content teams struggle to know which of thousands of pages are quietly losing search performance and deserve review. This project asks whether a page's age, update recency, and engagement signals can predict which pages are declining, well ahead of a full audit. Using an anonymized dataset of ~30,000 pages with 44–52 SEO and content features, a rule-based baseline score was first built from a simple decay heuristic, then compared against a Logistic Regression model trained on a wider feature set with proper imputation and encoding. The model outperformed the baseline on Precision@20 and Precision@50 under a random split, and the gain held up (though narrowed on Precision@50) under a stricter, client-grouped validation split designed to prevent leakage. The result is a ranked action list — Refresh Now, Monitor, or Leave As-Is — with a plain-language reason code attached to every page, giving content teams a defensible, explainable starting point for prioritization rather than a black-box score.</p>
+  </section>
+
+  <section id="intro">
+    <div class="sec-num">01</div>
+    <h2>Introduction / Problem Statement</h2>
+    <p>Search-facing content decays quietly. A page can keep ranking, keep receiving impressions, and still be losing clicks and engagement relative to its opportunity — long before anyone notices it needs attention. Content teams typically catch this only during periodic manual audits, by which point visibility has often already eroded.</p>
+    <p>The decision this work supports is a prioritization decision, not a content decision: <em>given a limited content-review budget, which pages should a content team look at first?</em> The guiding rule adopted for this lane was:</p>
+    <div class="callout">
+      <span class="tag">CORE HYPOTHESIS</span>
+      A page should be considered for refresh when it is old, still receives meaningful search visibility, and shows weak performance relative to its opportunity.
+    </div>
+    <p>This paper turns that qualitative rule into a scored, ranked, and reason-coded output that a content team could act on directly.</p>
+  </section>
+
+  <section id="data">
+    <div class="sec-num">02</div>
+    <h2>Data</h2>
+    <p><strong>Release:</strong> Anonymized content and search performance dataset, FlyRank ML Internship Programme data warehouse (Hugging Face, gated access).</p>
+    <p><strong>Scale:</strong> ~30,000 rows. The initial exploration used 44 columns; after feature preparation for modeling, the working feature vector (<code>refresh_feature_vector.csv</code>) expanded to 52 columns.</p>
+    <p><strong>Key fields used:</strong> <code>impressions_90d</code>, <code>clicks_90d</code>, <code>sessions_90d</code>, <code>content_age_days</code>, <code>days_since_last_update</code>, <code>ctr</code>, <code>avg_position</code>, <code>trend_direction</code>, plus derived log-scaled traffic features and tiered categorical bands (age, freshness, word count, impressions, position).</p>
+    <p><strong>Target construction:</strong> <code>is_declining_label</code> was derived from <code>trend_direction == "down"</code>, producing a distribution of 16,262 declining pages vs. 13,738 not declining — a reasonably balanced target, not a rare-event problem.</p>
+    <p><strong>Exclusions:</strong> No client names, domains, URLs, private queries, credentials, or raw exports are included anywhere in this paper, the underlying notebooks, or the released repository, per the dataset's public-use terms.</p>
+  </section>
+
+  <section id="methodology">
+    <div class="sec-num">03</div>
+    <h2>Methodology</h2>
+
+    <h3>Assumptions</h3>
+    <p>The core assumption is that <code>trend_direction == "down"</code> is a reasonable proxy for "declining performance," and that a page's age, update recency, and current engagement carry enough signal to anticipate that state before a manual review would catch it. This is treated as an associative, decision-support signal — not a causal claim about why any individual page declined.</p>
+
+    <h3>Features</h3>
+    <p><strong>Numerical:</strong> <code>search_volume</code>, <code>competition</code>, <code>cpc</code>, <code>word_count</code>, <code>char_count</code>, <code>log_impressions_90d</code>, <code>log_clicks_90d</code>, <code>log_sessions_90d</code>, <code>log_ai_sessions_90d</code>, <code>days_with_impressions</code>, <code>days_with_sessions</code>, <code>content_age_days</code>, <code>days_since_last_update</code>, <code>ctr</code>, <code>avg_position</code>, <code>engagement_rate</code>, <code>scroll_rate</code>, <code>ai_traffic_pct</code>.</p>
+    <p><strong>Categorical:</strong> <code>competition_level</code>, <code>content_type</code>, <code>main_intent</code>, <code>age_tier</code>, <code>freshness_tier</code>, <code>word_count_tier</code>, <code>impression_tier</code>, <code>position_tier</code>.</p>
+    <p><strong>Preprocessing:</strong> median imputation for numerical features, most-frequent imputation for categorical features, one-hot encoding for categorical variables.</p>
+
+    <h3>Label definition</h3>
+    <p><code>is_declining_label = 1</code> where <code>trend_direction == "down"</code>, else 0.</p>
+
+    <h3>Baseline</h3>
+    <p>A rule-based baseline action score was built first (Week 4), directly encoding the age × visibility × weak-performance hypothesis above, without machine learning. This baseline is the bar the model needs to clear — a model that only matches a simple rule is not adding value.</p>
+
+    <h3>Model</h3>
+    <p>Logistic Regression was chosen over a more complex classifier for interpretability: content teams need to trust and explain why a page was flagged, and coefficient-based reasoning supports the reason-code output described in Section 06.</p>
+
+    <h3>Validation design</h3>
+    <p>Two validation strategies were run deliberately, not just one, because a random split can overstate performance when pages from the same client or property share underlying patterns:</p>
+    <ul>
+      <li><strong>Random split</strong> — standard train/test split, no grouping constraint.</li>
+      <li><strong>Grouped split (by client)</strong> — enforces that no client appears in both train and test, giving a stricter, more honest estimate of how the model generalizes to genuinely unseen content.</li>
+    </ul>
+
+    <h3>Leakage checks</h3>
+    <p>Before trusting either validation run, the feature set was audited to confirm no forbidden or label-derived columns were included — specifically, nothing that encodes <code>trend_direction</code> or a post-outcome signal was allowed into the feature matrix. No leakage was found.</p>
+  </section>
+
+  <section id="results">
+    <div class="sec-num">04</div>
+    <h2>Results</h2>
+    <p>Three runs are reported side by side, in the interest of transparent, honest reporting rather than presenting a single best-looking number:</p>
+
+    <table>
+      <thead>
+        <tr><th>Run</th><th>Precision@20</th><th>Precision@50</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Baseline (rule-based, Week 4)</td><td class="num">0.70</td><td class="num">0.66</td></tr>
+        <tr><td>Logistic Regression — reported, Week 5</td><td class="num">0.75</td><td class="num">0.74</td></tr>
+        <tr><td>Logistic Regression — random split, Week 6</td><td class="num">0.75</td><td class="num">0.80</td></tr>
+        <tr class="highlight"><td>Logistic Regression — grouped split by client, Week 6</td><td class="num">0.75</td><td class="num">0.74</td></tr>
+      </tbody>
+    </table>
+
+    <div class="chart-box">
+      <canvas id="precisionChart" height="200"></canvas>
+    </div>
+
+    <p>Two things stand out. First, the model beats the baseline on every run — the gain is not an artifact of one lucky split. Second, Precision@50 is sensitive to validation design: it drops from 0.80 (random split) to 0.74 (grouped split by client), while Precision@20 holds steady at 0.75 across both. This is treated as the honest number: <strong>the grouped-split result (P@20: 0.75, P@50: 0.74) is the one used for all downstream claims</strong> in this paper, since it best simulates performance on genuinely unseen content.</p>
+
+    <h3>Feature interpretation</h3>
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Coefficient</th><th>Interpretation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>log_impressions_90d</code></td><td class="num">+0.084</td><td>Higher impressions were associated with a higher predicted probability of decline.</td></tr>
+        <tr><td><code>ctr</code></td><td class="num">−0.071</td><td>Higher CTR was associated with a lower predicted probability of decline.</td></tr>
+        <tr><td><code>log_sessions_90d</code></td><td class="num">−0.044</td><td>Higher sessions were associated with a lower predicted probability of decline.</td></tr>
+        <tr><td><code>position_tier_top_3</code></td><td class="num">−0.039</td><td>Content in the top-3 position tier was associated with a lower predicted probability of decline.</td></tr>
+      </tbody>
+    </table>
+    <p>The direction of these coefficients is broadly consistent with intuition rather than the original age-driven hypothesis specifically: engagement quality (CTR, sessions, top ranking positions) pulls a page away from "declining," while raw impression volume alone does not protect a page — a page can still be losing ground even while accumulating visibility, which is exactly the quiet-decay pattern this project set out to catch. Notably, <code>content_age_days</code> and <code>days_since_last_update</code> did not surface among the strongest coefficients, suggesting engagement signals carry more weight in this model than staleness alone — a useful refinement to the Week 3 hypothesis rather than a contradiction of it.</p>
+
+    <h3>Error analysis</h3>
+    <table>
+      <thead>
+        <tr><th>Error type</th><th>Example</th><th>Observation</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>False Positive</td><td><code>content_72c5c2d73e5a</code></td><td>Predicted probability ≈ 0.65, but only 13 days since last update.</td></tr>
+        <tr><td>False Positive</td><td><code>content_a52afbc76336</code></td><td>Predicted probability ≈ 0.66 with CTR = 0.00.</td></tr>
+        <tr><td>False Negative</td><td><code>content_2da6ae9d0882</code></td><td>Predicted probability ≈ 0.31 despite being labelled as declining.</td></tr>
+        <tr><td>False Negative</td><td><code>content_4595e8704e07</code></td><td>Predicted probability ≈ 0.31 with only 4 impressions.</td></tr>
+      </tbody>
+    </table>
+    <p>False positives tended to involve pages with a very low or zero CTR, or a recent update — cases where a single weak signal (e.g. CTR = 0.00) was enough to push the predicted probability up even though the page had just been touched. False negatives clustered around low-visibility pages with only a handful of impressions, where the model likely lacked enough signal to distinguish genuine decline from sparse data. These examples are illustrative of error patterns, not proof of why the model made any individual prediction.</p>
+  </section>
+
+  <section id="limitations">
+    <div class="sec-num">05</div>
+    <h2>Limitations &amp; Honest Framing</h2>
+    <p>This model identifies pages <em>associated</em> with decline — it does not establish, and does not claim to establish, that any specific factor <em>causes</em> decline, or that refreshing a flagged page will reverse it. Two methodology questions surfaced during review (Week 6) sharpen this point:</p>
+    <ul>
+      <li>Are refreshed and non-refreshed pages truly comparable, or were refreshed pages already stronger or more strategically important to begin with? Without a controlled comparison, an observed link between refreshing and improved performance could simply reflect which pages got attention in the first place.</li>
+      <li>Do observational results of this kind establish that refreshing <em>causes</em> improvement, or only that refreshed and improved tend to co-occur? This paper treats them as the latter.</li>
+    </ul>
+    <p>Consistent with this, language throughout this paper is kept to <strong>observed</strong>, <strong>directional</strong>, and <strong>decision-support</strong> terms rather than causal or algorithm-revealing claims. No claim here should be read as describing or proving how Google's ranking algorithm works.</p>
+    <p>Precision@50 dropped meaningfully between the random and grouped validation split (0.80 → 0.74), while Precision@20 did not. This means the model's top-tier judgments are more stable than its judgments further down the ranked list — a caveat worth surfacing to anyone using this output at scale rather than just skimming the top of the list.</p>
+  </section>
+
+  <section id="recommendations">
+    <div class="sec-num">06</div>
+    <h2>Ranked Recommendations — Action Playbook</h2>
+    <p>Rather than returning a raw probability, the model output is translated into three action tiers, each carrying a short, human-readable reason code built from the page's own signals — this is what turns a classifier into a usable action engine.</p>
+
+    <div class="action-grid">
+      <div class="action-card refresh">
+        <div class="tier">Refresh Now</div>
+        <div>
+          <p>High decline probability, combined with real content age and meaningful residual visibility — the page matches the core hypothesis (old + visible + underperforming) closely.</p>
+          <span class="reason-code">content_age: high</span>
+          <span class="reason-code">days_since_update: high</span>
+          <span class="reason-code">ctr: below median</span>
+        </div>
+      </div>
+      <div class="action-card monitor">
+        <div class="tier">Monitor</div>
+        <div>
+          <p>Moderate decline probability, or a page that was recently updated but still shows early softening — not urgent, but worth a check next cycle rather than immediate rewrite.</p>
+          <span class="reason-code">decline_prob: mid</span>
+          <span class="reason-code">days_since_update: low</span>
+        </div>
+      </div>
+      <div class="action-card leave">
+        <div class="tier">Leave As-Is</div>
+        <div>
+          <p>Low decline probability with stable or strong engagement — reviewing this page would spend budget better used elsewhere.</p>
+          <span class="reason-code">decline_prob: low</span>
+          <span class="reason-code">engagement_rate: healthy</span>
+        </div>
+      </div>
+    </div>
+
+    <p>In practice, the final ranked CSV sorts all pages by decline probability within each tier, so a content team works strictly top-down inside "Refresh Now" first, using the attached reason codes to decide what kind of refresh (rewrite vs. metadata fix vs. consolidation) each page likely needs.</p>
+  </section>
+
+  <section id="reproducibility">
+    <div class="sec-num">07</div>
+    <h2>Reproducibility</h2>
+    <p>All notebooks referenced in this paper are included in the accompanying repository under <code>work/</code>. Update the links below once your repo is live:</p>
+    <ul class="repro-list">
+      <li><span>Week 1 — Data Exploration</span><span class="w">work/week1_exploration.ipynb</span></li>
+      <li><span>Week 2 — Baseline Modeling &amp; Ranking Metrics</span><span class="w">work/week2_baseline_metrics.ipynb</span></li>
+      <li><span>Week 3 — Lane &amp; Signal Definition</span><span class="w">work/week3_signals.ipynb</span></li>
+      <li><span>Week 4 — Baseline Action Score</span><span class="w">work/week4_baseline_score.ipynb</span></li>
+      <li><span>Week 5 — Capstone Modeling</span><span class="w">work/week5_modeling.ipynb</span></li>
+      <li><span>Week 6 — Validation &amp; Claim Audit</span><span class="w">work/week6_validation.ipynb</span></li>
+      <li><span>Capstone notebook (consolidated)</span><span class="w">work/capstone_notebook.ipynb</span></li>
+    </ul>
+  </section>
+
+  <footer>
+    <p><strong>Acknowledgments &amp; Data Credit</strong></p>
+    <p class="credit">Built on the FlyRank ML Internship dataset — <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a></p>
+  </footer>
+
+</div>
+
+<script>
+  const ctx = document.getElementById('precisionChart');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Baseline', 'LogReg (Week 5)', 'LogReg — Random split', 'LogReg — Grouped split'],
+      datasets: [
+        {
+          label: 'Precision@20',
+          data: [0.70, 0.75, 0.75, 0.75],
+          backgroundColor: '#2F6F6D'
+        },
+        {
+          label: 'Precision@50',
+          data: [0.66, 0.74, 0.80, 0.74],
+          backgroundColor: '#B8862B'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'top', labels: { font: { family: 'Space Grotesk', size: 12 } } },
+        title: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 1,
+          ticks: { font: { family: 'Space Grotesk', size: 11 } }
+        },
+        x: {
+          ticks: { font: { family: 'Space Grotesk', size: 10.5 } }
+        }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>
